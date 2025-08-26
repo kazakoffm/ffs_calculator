@@ -127,64 +127,46 @@ def get_comparison_with_previous(current_ffs, current_scores):
         return ffs_delta, scores_delta
     return None, None
 
-def create_pdf_report(scores, ffs, context, ffs_delta=None, scores_delta=None):
+from fpdf import FPDF
+import io
+import os
+
+def create_pdf_report(scores, ffs, context, ffs_delta, scores_delta):
+    # Создаём PDF
     pdf = FPDF()
     pdf.add_page()
-    
+
+    # Добавляем шрифт с поддержкой кириллицы
+    font_path = os.path.join(os.path.dirname(__file__), "fonts", "DejaVuSans.ttf")
+    pdf.add_font("DejaVu", "", font_path, uni=True)
+    pdf.set_font("DejaVu", "", 14)
+
     # Заголовок
-    pdf.set_font("Arial", "B", 16)
-    pdf.cell(0, 10, "FFS Assessment Report", 0, 1, "C")
+    pdf.cell(200, 10, "Отчёт по FFS", ln=True, align="C")
+
     pdf.ln(10)
-    
-    # Основная информация
-    pdf.set_font("Arial", "", 12)
-    pdf.cell(0, 10, f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", 0, 1)
-    pdf.cell(0, 10, f"Context: {context}", 0, 1)
-    pdf.cell(0, 10, f"Overall FFS: {ffs:.2f}", 0, 1)
-    
-    if ffs_delta is not None:
-        change_text = f"Change from previous: {ffs_delta:+.2f}"
-        pdf.cell(0, 10, change_text, 0, 1)
-    
+    pdf.set_font("DejaVu", "", 12)
+
+    # Основные данные
+    pdf.cell(200, 10, f"FFS: {ffs}", ln=True)
+    pdf.cell(200, 10, f"Контекст: {context}", ln=True)
+
+    pdf.ln(5)
+    pdf.cell(200, 10, f"Изменение FFS: {ffs_delta}", ln=True)
+
     pdf.ln(10)
-    
-    # Компоненты
-    pdf.set_font("Arial", "B", 14)
-    pdf.cell(0, 10, "Component Scores:", 0, 1)
-    pdf.set_font("Arial", "", 12)
-    
-    for comp in ["R", "C", "H", "T"]:
-        comp_name = ["Reflection", "Correction", "Management", "Creativity"][["R", "C", "H", "T"].index(comp)]
-        score_text = f"{comp_name}: {scores[comp]:.1f}/10"
-        
-        if scores_delta and comp in scores_delta:
-            score_text += f" ({scores_delta[comp]:+.1f})"
-        
-        pdf.cell(0, 10, score_text, 0, 1)
-    
-    pdf.ln(10)
-    
-    # Рекомендации
-    pdf.set_font("Arial", "B", 14)
-    pdf.cell(0, 10, "Recommendations:", 0, 1)
-    pdf.set_font("Arial", "", 12)
-    
-    for comp, score in scores.items():
-        if score < 7:
-            comp_name = ["Reflection", "Correction", "Management", "Creativity"][["R", "C", "H", "T"].index(comp)]
-            pdf.set_font("Arial", "B", 12)
-            pdf.cell(0, 10, f"{comp_name}:", 0, 1)
-            pdf.set_font("Arial", "", 12)
-            
-            for rec in RECOMMENDATIONS[comp]:
-                pdf.multi_cell(0, 10, f"- {rec}")
-            pdf.ln(5)
-    
-    # Сохраняем PDF в байтовый объект
-    pdf_output = BytesIO()
-    pdf_output.write(pdf.output(dest='S').encode('utf-8'))
+    pdf.cell(200, 10, "Оценки:", ln=True)
+
+    for key, value in scores.items():
+        delta = scores_delta.get(key, 0)
+        pdf.cell(200, 10, f"{key}: {value} (Δ {delta})", ln=True)
+
+    # Записываем PDF в память
+    pdf_output = io.BytesIO()
+    pdf_bytes = pdf.output(dest="S").encode("latin1")  # fpdf требует latin1
+    pdf_output.write(pdf_bytes)
     pdf_output.seek(0)
-    
+
     return pdf_output
 
 def get_download_link(file_data, filename):
