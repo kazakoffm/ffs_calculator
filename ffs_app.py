@@ -182,7 +182,7 @@ def create_pdf_report(scores, ffs, context, ffs_delta=None, scores_delta=None):
     
     # Сохраняем PDF в байтовый объект
     pdf_output = BytesIO()
-    pdf_output.write(pdf.output(dest='S').encode('latin1'))
+    pdf_output.write(pdf.output(dest='S').encode('utf-8'))
     pdf_output.seek(0)
     
     return pdf_output
